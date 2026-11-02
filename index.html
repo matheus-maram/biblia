@@ -232,6 +232,10 @@ html.seen .splash, .splash.skip { display: none; }
 }
 .v .x { min-width: 0; }
 .v.on { background: var(--sel); box-shadow: inset 0 0 0 2px var(--rubric); }
+.v.say { background: var(--sel); }
+.v.say .n { color: var(--onrubric); background: var(--rubric); align-self: start; justify-self: start; padding: .3em .35em .15em; margin-top: .4em; line-height: 1; }
+.listen { width: 100%; margin-bottom: 14px; }
+#rateRow .btn { flex-basis: 90px; padding-inline: 8px; }
 .state { padding: 48px 0; font-family: var(--f-mono); font-size: 14px; line-height: 1.6; }
 .state .btn { margin-top: 16px; }
 .endblk { margin-top: 30px; border-top: var(--rule) solid var(--ink); padding-top: 22px; display: grid; gap: 16px; }
@@ -536,6 +540,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
       <div class="chnum" id="chNum" aria-label="Capítulo 23">23</div>
     </div>
     <div class="meta label"><span id="meta">150 capítulos · Almeida</span><span class="st ok" id="readTag" hidden>✓ Lido</span></div>
+    <button class="btn listen" id="listenBtn" hidden>▶ Ouvir capítulo</button>
     <div class="verses" id="verses" aria-live="polite"><div class="state">CARREGANDO…</div></div>
     <div class="endblk" id="endblk" hidden>
       <button class="btn inv markbtn" id="markBtn">Marcar capítulo como lido</button>
@@ -597,8 +602,14 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   </div>
   <div class="bar-in gut wrap" id="barSel" hidden>
     <div class="selref"><b id="selRef">—</b><small class="label" id="selCount">1 versículo</small></div>
+    <button class="btn fit" id="listenSel" aria-label="Ouvir seleção" hidden>▶</button>
     <button class="btn red fit" id="copyBtn">Copiar</button>
     <button class="btn fit" id="clearSel" aria-label="Limpar seleção">✕</button>
+  </div>
+  <div class="bar-in gut wrap" id="barTts" hidden>
+    <div class="selref"><b id="ttsRef">—</b><small class="label" id="ttsState">Ouvindo</small></div>
+    <button class="btn fit" id="ttsPause">Pausar</button>
+    <button class="btn red fit" id="ttsStop">Parar</button>
   </div>
 </nav>
 
@@ -649,6 +660,15 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
     <div class="row" role="group" aria-label="Tema">
       <button class="btn" id="themeLight" aria-pressed="false">Claro</button>
       <button class="btn" id="themeDark" aria-pressed="false">Escuro</button>
+    </div>
+    <div id="rateBox" hidden>
+      <div class="sec"><span class="label">Velocidade da voz</span></div>
+      <div class="row" role="group" aria-label="Velocidade da voz" id="rateRow">
+        <button class="btn" data-rate="0.8" aria-pressed="false">Devagar</button>
+        <button class="btn" data-rate="1" aria-pressed="false">Normal</button>
+        <button class="btn" data-rate="1.25" aria-pressed="false">Rápido</button>
+      </div>
+      <div class="fine"><p>A leitura usa a voz do próprio aparelho e funciona sem internet. No iPhone, ela pode parar se a tela bloquear.</p></div>
     </div>
     <div class="fine">
       <p>Todas as traduções aqui são de uso livre. Versões como ARA, ARC, NVI, NAA e NTLH têm direitos reservados pelas editoras e por isso não estão incluídas.</p>
@@ -723,7 +743,8 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   var KEY = "biblia.v1", PKEY = "biblia.prog.v1";
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { ver: "alm", b: 18, c: 23, size: 20, read: false, theme: "" };
+  var state = { ver: "alm", b: 18, c: 23, size: 20, read: false, theme: "", rate: 1 };
+  var RATES = [0.8, 1, 1.25];
   var sel = new Set();
   var cache = new Map();
   var renderToken = 0;
@@ -739,6 +760,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
       if (SIZES.indexOf(saved.size) >= 0) state.size = saved.size;
       state.read = !!saved.read;
       if (saved.theme === "light" || saved.theme === "dark") state.theme = saved.theme;
+      if (RATES.indexOf(saved.rate) >= 0) state.rate = saved.rate;
     }
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
@@ -994,6 +1016,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   // ---------- views ----------
   function setView(v) {
     view = v;
+    if (v !== "reader") stopTts();
     $("home").hidden = v !== "home"; $("reader").hidden = v !== "reader"; $("progress").hidden = v !== "progress";
     $("bar").hidden = v !== "reader";
     $("brand").hidden = v !== "home"; $("homeBtn").hidden = v === "home";
@@ -1046,6 +1069,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   function render(focusVerse) {
     var b = state.b, c = state.c, bk = BOOKS[b], vv = ver();
     var token = ++renderToken;
+    stopTts();
     setView("reader");
     clearSel();
     state.read = true;
@@ -1063,6 +1087,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
     routeTo("#" + bk[0] + "-" + c + (focusVerse ? "-" + focusVerse : ""));
     current = null;
     $("endblk").hidden = true;
+    $("listenBtn").hidden = true;
     $("readTag").hidden = !isRead(gIdx(b, c));
     var box = $("verses");
     var slow = setTimeout(function () { if (token === renderToken) box.innerHTML = '<div class="state">CARREGANDO ' + bk[2].toUpperCase() + "…</div>"; }, 120);
@@ -1086,6 +1111,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
       });
       box.innerHTML = ""; box.appendChild(frag);
       $("endblk").hidden = false; paintEnd(false);
+      $("listenBtn").hidden = !synth;
       if (focusVerse && ch[focusVerse - 1]) {
         toggle(focusVerse);
         var el = $("v" + focusVerse);
@@ -1124,7 +1150,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   function refText() { return BOOKS[state.b][2] + " " + state.c + ":" + ranges(sorted()); }
   function updateSelBar() {
     var on = sel.size > 0;
-    $("barNav").hidden = on; $("barSel").hidden = !on;
+    $("barNav").hidden = on || tts.on; $("barSel").hidden = !on; $("barTts").hidden = on || !tts.on;
     if (on) {
       $("selRef").textContent = refText();
       $("selCount").textContent = sel.size + (sel.size === 1 ? " versículo · " : " versículos · ") + ver().code;
@@ -1163,6 +1189,84 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
     copyString(txt, function () { toast("Copiado: " + ref); clearSel(); });
   });
   $("clearSel").addEventListener("click", clearSel);
+
+  // ---------- leitura em voz alta, com a voz do próprio aparelho ----------
+  var synth = window.speechSynthesis && window.SpeechSynthesisUtterance ? window.speechSynthesis : null;
+  var tts = { on: false, paused: false, queue: [], i: 0, utt: null, whole: false };
+  var ORD = ["", "Primeiro", "Segundo", "Terceiro"];
+  // "1 Samuel" vira "Primeiro Samuel" e, no Novo Testamento, "1 Coríntios" vira "Primeira Coríntios"
+  function spokenBook(b) {
+    var m = BOOKS[b][2].match(/^([1-3]) (.+)$/);
+    if (!m) return BOOKS[b][2];
+    var o = ORD[+m[1]];
+    return (b < 39 ? o : o.slice(0, -1) + "a") + " " + m[2];
+  }
+  function ptVoice() {
+    var all = synth.getVoices();
+    var vs = all.filter(function (v) { return /^pt[-_]br/i.test(v.lang); });
+    if (!vs.length) vs = all.filter(function (v) { return /^pt/i.test(v.lang); });
+    return vs.filter(function (v) { return /premium|enhanced|aprimorad|natural|neural/i.test(v.name); })[0] || vs[0] || null;
+  }
+  function sayMark(n) {
+    var old = document.querySelector(".v.say"); if (old) old.classList.remove("say");
+    var el = n && $("v" + n); if (!el) return;
+    el.classList.add("say");
+    el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+  function paintTts() {
+    var n = tts.queue[tts.i];
+    $("ttsRef").textContent = BOOKS[state.b][2] + " " + state.c + (n ? ":" + n : "");
+    $("ttsState").textContent = (tts.paused ? "Pausado · " : "Ouvindo · ") + ver().code;
+    $("ttsPause").textContent = tts.paused ? "Continuar" : "Pausar";
+    $("listenBtn").textContent = tts.on ? "■ Parar leitura" : "▶ Ouvir capítulo";
+    updateSelBar();
+  }
+  function speakNext() {
+    if (!tts.on || tts.paused) return;
+    if (tts.i >= tts.queue.length) {
+      var whole = tts.whole;
+      stopTts();
+      if (whole && !$("endblk").hidden) $("endblk").scrollIntoView({ block: "center" });
+      return;
+    }
+    var n = tts.queue[tts.i];
+    sayMark(n); paintTts();
+    var u = new SpeechSynthesisUtterance(n ? current[n - 1] : spokenBook(state.b) + ", capítulo " + state.c + ".");
+    u.lang = "pt-BR"; u.rate = state.rate;
+    var v = ptVoice(); if (v) u.voice = v;
+    u.onend = u.onerror = function () { if (tts.utt !== u) return; tts.utt = null; tts.i++; speakNext(); };
+    tts.utt = u;
+    synth.speak(u);
+  }
+  // Pausar cancela a fala e continuar repete o versículo, porque o pause() do Safari não é confiável
+  function startTts(queue, whole) {
+    if (!synth || !current || !queue.length) return;
+    synth.cancel();
+    tts.on = true; tts.paused = false; tts.queue = queue; tts.i = 0; tts.whole = whole; tts.utt = null;
+    speakNext();
+  }
+  function stopTts() {
+    if (!tts.on) return;
+    tts.on = false; tts.paused = false; tts.utt = null; tts.queue = [];
+    synth.cancel();
+    sayMark(0); paintTts();
+  }
+  $("listenBtn").addEventListener("click", function () {
+    if (tts.on) { stopTts(); return; }
+    var q = [0];
+    current.forEach(function (t, i) { if (t) q.push(i + 1); });
+    startTts(q, true);
+  });
+  $("listenSel").addEventListener("click", function () { var q = sorted(); clearSel(); startTts(q, false); });
+  $("ttsPause").addEventListener("click", function () {
+    if (!tts.on) return;
+    if (tts.paused) { tts.paused = false; speakNext(); return; }
+    tts.paused = true; tts.utt = null; synth.cancel(); paintTts();
+  });
+  $("ttsStop").addEventListener("click", stopTts);
+  if (synth) synth.getVoices();
+  $("listenSel").hidden = !synth;
+  $("rateBox").hidden = !synth;
 
   var swiped = false;
   $("verses").addEventListener("click", function (e) {
@@ -1373,6 +1477,14 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   }
   $("themeLight").addEventListener("click", function () { setTheme("light"); });
   $("themeDark").addEventListener("click", function () { setTheme("dark"); });
+
+  function paintRate() {
+    document.querySelectorAll("#rateRow .btn").forEach(function (b) { b.setAttribute("aria-pressed", +b.dataset.rate === state.rate ? "true" : "false"); });
+  }
+  $("rateRow").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-rate]"); if (!b) return;
+    state.rate = +b.dataset.rate; save(); paintRate();
+  });
 
   // ---------- home ----------
   (function ticker() {
@@ -1717,6 +1829,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
 
   applySize();
   paintTheme();
+  paintRate();
   $("openVer").textContent = ver().code;
   $("openProg").textContent = fmtPct(rc);
   checkMilestones();

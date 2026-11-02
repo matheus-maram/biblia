@@ -17,7 +17,8 @@ Os caminhos são relativos, porque o site fica em `/biblia/`. Não use caminhos 
 - **Design brutalista:** preto e branco, tipografia pesada, linhas grossas e vermelho rubrica para números, progresso e o lugar atual. Animações secas (`steps`, carimbo, tremor) e sempre respeitando `prefers-reduced-motion`.
 - **Logo:** "AJA CHURCH" composto em tipografia, inclusive nos ícones, até chegar o arquivo oficial (de preferência SVG ou PNG transparente). Quando chegar, trocar `.mark` e aplicar a animação da abertura nele.
 - **Versões:** só traduções de uso livre (Almeida, Bíblia Livre, Bíblia Livre TR, NVA). ARA, ARC, NVI, NAA e NTLH têm direitos reservados e não podem entrar. A NVA usa "Yahweh" no lugar de "SENHOR".
-- **Configurações:** tradução, tamanho do texto e tema claro ou escuro. Sem escolha salva, o tema acompanha o sistema.
+- **Configurações:** tradução, tamanho do texto, tema claro ou escuro e velocidade da voz. Sem escolha salva, o tema acompanha o sistema.
+- **Leitura em voz alta:** usa a voz do próprio aparelho (`speechSynthesis`), sem serviço externo e sem internet. Lê o capítulo (título e versículos) ou só os versículos selecionados, marca o versículo atual e para ao trocar de capítulo. Pausar cancela a fala e continuar repete o versículo, porque o `pause()` do Safari não é confiável. Sem suporte no navegador, os botões não aparecem.
 - **Abertura:** toca uma vez por sessão e um toque pula.
 - **Gamificação:** marcar capítulo como lido, desafio de X dias (sugestão de 1 ano) seguindo de Gênesis a Apocalipse, sequência de dias, mapa de 1.189 capítulos e 16 marcos com tela cheia.
 

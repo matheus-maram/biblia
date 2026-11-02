@@ -6,7 +6,7 @@ import { JSDOM, VirtualConsole } from "jsdom";
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const PKEY = "biblia.prog.v1";
 
-function open(hash = "", prog = null, settings = null) {
+function open(hash = "", prog = null, settings = null, { voice = false } = {}) {
   const errors = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on("jsdomError", (e) => errors.push(e));
@@ -21,6 +21,16 @@ function open(hash = "", prog = null, settings = null) {
       w.scrollTo = () => {};
       w.Element.prototype.scrollIntoView = () => {};
       w.matchMedia = () => ({ matches: true, addEventListener() {} });
+      if (voice) {
+        // Voz falsa: guarda o que seria falado e deixa o teste encerrar cada fala
+        w.spoken = [];
+        w.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+        w.speechSynthesis = {
+          speak(u) { w.spoken.push(u); },
+          cancel() { w.cancels = (w.cancels || 0) + 1; },
+          getVoices: () => [{ lang: "en-US", name: "Samantha" }, { lang: "pt-BR", name: "Luciana" }],
+        };
+      }
       w.navigator.clipboard = { writeText: (t) => { w.copied = t; return Promise.resolve(); } };
       w.fetch = async (path) => {
         const url = new URL("../" + path, import.meta.url);
@@ -158,4 +168,72 @@ test("o código de backup restaura o progresso em outro aparelho", async () => {
   b.$("bkApply").click();
   assert.ok(b.saved().m.livro);
   assert.equal(b.$("pgN").textContent, "1 de 1.189 capítulos");
+});
+
+test("sem voz no navegador, o botão de ouvir não aparece", async () => {
+  const { $ } = open("#sl-23");
+  await tick();
+  assert.equal($("listenBtn").hidden, true);
+  assert.equal($("rateBox").hidden, true);
+});
+
+test("ouvir o capítulo lê o título e depois cada versículo, marcando o atual", async () => {
+  const { w, $ } = open("#1co-13", null, { rate: 1.25 }, { voice: true });
+  await tick();
+  assert.equal($("listenBtn").hidden, false);
+  $("listenBtn").click();
+  const last = () => w.spoken[w.spoken.length - 1];
+  assert.equal(last().text, "Primeira Coríntios, capítulo 13.");
+  assert.equal(last().lang, "pt-BR");
+  assert.equal(last().voice.name, "Luciana");
+  assert.equal(last().rate, 1.25);
+  assert.equal($("barTts").hidden, false);
+  assert.equal($("barNav").hidden, true);
+
+  last().onend();
+  assert.equal(last().text, $("v1").querySelector(".x").textContent);
+  assert.ok($("v1").classList.contains("say"));
+  assert.equal($("ttsRef").textContent, "1 Coríntios 13:1");
+
+  $("ttsPause").click();
+  assert.equal($("ttsPause").textContent, "Continuar");
+  const count = w.spoken.length;
+  $("ttsPause").click();
+  assert.equal(w.spoken.length, count + 1);
+  assert.equal(last().text, $("v1").querySelector(".x").textContent);
+
+  $("ttsStop").click();
+  assert.equal($("barTts").hidden, true);
+  assert.equal($("barNav").hidden, false);
+  assert.equal(w.document.querySelector(".v.say"), null);
+});
+
+test("ouvir a seleção lê só os versículos escolhidos e para no fim", async () => {
+  const { w, $ } = open("#sl-23", null, null, { voice: true });
+  await tick();
+  $("v3").click(); $("v1").click();
+  $("listenSel").click();
+  assert.equal($("barSel").hidden, true);
+  const said = [];
+  while (!$("barTts").hidden) { const u = w.spoken[w.spoken.length - 1]; said.push(u.text); u.onend(); }
+  assert.deepEqual(said, [1, 3].map((n) => $("v" + n).querySelector(".x").textContent));
+  assert.equal($("barNav").hidden, false);
+});
+
+test("trocar de capítulo interrompe a leitura", async () => {
+  const { $ } = open("#sl-23", null, null, { voice: true });
+  await tick();
+  $("listenBtn").click();
+  $("next").click();
+  await tick();
+  assert.equal($("barTts").hidden, true);
+  assert.equal($("listenBtn").textContent, "▶ Ouvir capítulo");
+});
+
+test("a velocidade da voz fica salva nas configurações", () => {
+  const { w, $ } = open("", null, null, { voice: true });
+  assert.equal($("rateBox").hidden, false);
+  w.document.querySelector('[data-rate="0.8"]').click();
+  assert.equal(JSON.parse(w.localStorage.getItem("biblia.v1")).rate, 0.8);
+  assert.equal(w.document.querySelector('[data-rate="0.8"]').getAttribute("aria-pressed"), "true");
 });
