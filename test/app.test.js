@@ -64,12 +64,15 @@ test("a busca rápida abre a referência e seleciona o versículo", async () => 
   assert.equal($("selRef").textContent, "João 3:16");
 });
 
-test("um versículo ausente na fonte fica sem número, sem deslocar os seguintes", async () => {
-  const { $ } = open("#lc-9");
+test("um versículo vazio fica sem número, sem deslocar os seguintes", async () => {
+  const { w, $ } = open("#sl-46");
   await tick();
-  assert.equal($("v61"), null);
-  assert.match($("v62").textContent, /^62Jesus, porém/);
-  assert.match($("meta").textContent, /61 versículos/);
+  $("openVer").click();
+  [...w.document.querySelectorAll(".ver")].find((el) => el.textContent.includes("BLV")).click();
+  await tick();
+  assert.equal($("v3"), null);
+  assert.match($("v4").textContent, /^4/);
+  assert.match($("meta").textContent, /10 versículos/);
 });
 
 test("trocar de versão mantém o capítulo e carrega o novo texto", async () => {

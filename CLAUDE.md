@@ -28,11 +28,9 @@ O progresso fica só no `localStorage` do aparelho (`biblia.prog.v1`; preferênc
 - A sincronização com a conta Claude existia só na versão em artefato e foi removida daqui.
 - **LGPD:** se o app ganhar login ou banco de dados, o progresso de leitura passa a ser dado pessoal ligado à convicção religiosa, que é dado sensível (art. 5º, II). Isso exige base legal, aviso de privacidade e cuidado com acesso antes de lançar.
 
-## Problemas conhecidos nos textos
+## Textos da Almeida
 
-Vêm das fontes e não foram alterados, porque corrigir exige decidir o texto:
+A fonte (`por-almeida.usfx.xml`, do open-bibles) tem falhas de numeração e de texto. A numeração foi corrigida capítulo por capítulo, comparando com a Bíblia Livre, a NVA e a Almeida de 1911, e as correções estão listadas no README. `test/data.test.js` impede que esses erros voltem.
 
-- **Almeida, Salmos 86:10 e Lucas 9:61:** faltam na fonte. As posições ficam vazias para manter a numeração, e o app pula esses números. Não preencher com outra tradução.
-- **Almeida, Rute 4:1:** o texto está corrompido na fonte.
-
-A numeração da Almeida foi alinhada à Bíblia Livre e à NVA, capítulo por capítulo. As correções estão listadas no README, e `test/data.test.js` impede que os erros de numeração e de codificação voltem.
+- **Referência de numeração:** em caso de dúvida, vale a tradição da Almeida (módulo `PorAlmeida1911` do CrossWire), não a Bíblia Livre. Por isso 2 Coríntios 13 tem 13 versículos.
+- **Texto ausente ou corrompido:** Rute 4:1, Salmos 86:10 e Lucas 9:61 vêm da edição de 1911, com a ortografia atualizada. Não preencher a Almeida com outra tradução.

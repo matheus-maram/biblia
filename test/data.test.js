@@ -25,7 +25,11 @@ test("todas as versões têm 66 livros e 1.189 capítulos", () => {
 test("a Almeida tem o mesmo total de versículos da Bíblia Livre em cada capítulo", () => {
   for (let b = 0; b < 66; b++) {
     const blv = book("blv", b);
-    book("alm", b).forEach((ch, c) => assert.equal(ch.length, blv[c].length, `livro ${b + 1}, capítulo ${c + 1}`));
+    book("alm", b).forEach((ch, c) => {
+      // 2 Coríntios 13 tem 13 versículos na tradição da Almeida (edição de 1911) e 14 na Bíblia Livre.
+      const expected = b === 46 && c === 12 ? 13 : blv[c].length;
+      assert.equal(ch.length, expected, `livro ${b + 1}, capítulo ${c + 1}`);
+    });
   }
 });
 
@@ -44,19 +48,22 @@ test("a Almeida mantém a numeração corrigida", () => {
     [18, 86, 13, "Pois grande"],
     [25, 20, 5, "e dize-lhes:"],
     [41, 9, 62, "Jesus, porém"],
-    [46, 13, 14, "A graça do Senhor"],
+    [46, 13, 13, "A graça do Senhor"],
   ];
   for (const [b, c, v, start] of cases) {
     assert.ok(book("alm", b)[c - 1][v - 1].startsWith(start), `livro ${b + 1}, ${c}:${v}`);
   }
 });
 
-test("os únicos versículos vazios da Almeida são os que faltam na fonte", () => {
+test("a Almeida não tem versículos vazios e os três completados continuam no lugar", () => {
   const empty = [];
   for (let b = 0; b < 66; b++) {
     book("alm", b).forEach((ch, c) => ch.forEach((text, v) => { if (!text) empty.push(`${b + 1}.${c + 1}.${v + 1}`); }));
   }
-  assert.deepEqual(empty, ["19.86.10", "42.9.61"]);
+  assert.deepEqual(empty, []);
+  assert.ok(book("alm", 7)[3][0].startsWith("E Boaz subiu à porta"));
+  assert.ok(book("alm", 18)[85][9].startsWith("Porque tu és grande"));
+  assert.ok(book("alm", 41)[8][60].startsWith("Disse também outro"));
 });
 
 test("nenhum versículo tem erro de codificação ou marcação solta", () => {
