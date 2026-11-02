@@ -19,6 +19,7 @@ Os caminhos são relativos, porque o site fica em `/biblia/`. Não use caminhos 
 - **Versões:** só traduções de uso livre (Almeida, Bíblia Livre, Bíblia Livre TR, NVA). ARA, ARC, NVI, NAA e NTLH têm direitos reservados e não podem entrar. A NVA usa "Yahweh" no lugar de "SENHOR".
 - **Configurações:** tradução, tamanho do texto, tema claro ou escuro e velocidade da voz. Sem escolha salva, o tema acompanha o sistema.
 - **Leitura em voz alta:** usa a voz do próprio aparelho (`speechSynthesis`), sem serviço externo e sem internet. Lê o capítulo (título e versículos) ou só os versículos selecionados, marca o versículo atual e para ao trocar de capítulo. Pausar cancela a fala e continuar repete o versículo, porque o `pause()` do Safari não é confiável. Sem suporte no navegador, os botões não aparecem.
+- **Escolha de voz:** as Configurações listam as vozes em português do aparelho, primeiro as do Brasil e as Premium ou Aprimoradas. "Automática" usa a melhor. A voz escolhida fica salva pelo `voiceURI`, e se ela sumir do aparelho o app volta para a automática. Vozes neurais no próprio app (Piper, Kokoro) ficaram como próximo passo, pelo download de 60 a 90 MB.
 - **Abertura:** toca uma vez por sessão e um toque pula.
 - **Gamificação:** marcar capítulo como lido, desafio de X dias (sugestão de 1 ano) seguindo de Gênesis a Apocalipse, sequência de dias, mapa de 1.189 capítulos e 16 marcos com tela cheia.
 

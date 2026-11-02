@@ -28,7 +28,12 @@ function open(hash = "", prog = null, settings = null, { voice = false } = {}) {
         w.speechSynthesis = {
           speak(u) { w.spoken.push(u); },
           cancel() { w.cancels = (w.cancels || 0) + 1; },
-          getVoices: () => [{ lang: "en-US", name: "Samantha" }, { lang: "pt-BR", name: "Luciana" }],
+          getVoices: () => [
+            { lang: "en-US", name: "Samantha", voiceURI: "samantha" },
+            { lang: "pt-PT", name: "Joana", voiceURI: "joana" },
+            { lang: "pt-BR", name: "Luciana", voiceURI: "luciana" },
+            { lang: "pt-BR", name: "Felipe (Aprimorada)", voiceURI: "felipe-plus" },
+          ],
         };
       }
       w.navigator.clipboard = { writeText: (t) => { w.copied = t; return Promise.resolve(); } };
@@ -174,7 +179,7 @@ test("sem voz no navegador, o botão de ouvir não aparece", async () => {
   const { $ } = open("#sl-23");
   await tick();
   assert.equal($("listenBtn").hidden, true);
-  assert.equal($("rateBox").hidden, true);
+  assert.equal($("voiceBox").hidden, true);
 });
 
 test("ouvir o capítulo lê o título e depois cada versículo, marcando o atual", async () => {
@@ -185,7 +190,7 @@ test("ouvir o capítulo lê o título e depois cada versículo, marcando o atual
   const last = () => w.spoken[w.spoken.length - 1];
   assert.equal(last().text, "Primeira Coríntios, capítulo 13.");
   assert.equal(last().lang, "pt-BR");
-  assert.equal(last().voice.name, "Luciana");
+  assert.equal(last().voice.name, "Felipe (Aprimorada)");
   assert.equal(last().rate, 1.25);
   assert.equal($("barTts").hidden, false);
   assert.equal($("barNav").hidden, true);
@@ -232,8 +237,33 @@ test("trocar de capítulo interrompe a leitura", async () => {
 
 test("a velocidade da voz fica salva nas configurações", () => {
   const { w, $ } = open("", null, null, { voice: true });
-  assert.equal($("rateBox").hidden, false);
+  assert.equal($("voiceBox").hidden, false);
   w.document.querySelector('[data-rate="0.8"]').click();
   assert.equal(JSON.parse(w.localStorage.getItem("biblia.v1")).rate, 0.8);
   assert.equal(w.document.querySelector('[data-rate="0.8"]').getAttribute("aria-pressed"), "true");
+});
+
+test("a lista de vozes põe as do Brasil e as aprimoradas primeiro, e a escolha vale para a leitura", async () => {
+  const { w, $ } = open("#sl-23", null, null, { voice: true });
+  await tick();
+  $("openVer").click();
+  const items = () => [...$("voiceList").querySelectorAll(".ver")];
+  assert.deepEqual(items().map((el) => el.querySelector(".vn").textContent), ["Automática", "Felipe (Aprimorada)", "Luciana", "Joana"]);
+  assert.match(items()[0].querySelector(".vd").textContent, /Felipe \(Aprimorada\)/);
+  assert.equal(items()[0].getAttribute("aria-pressed"), "true");
+  assert.match(items()[3].querySelector(".vd").textContent, /Portugal/);
+
+  items()[2].click();
+  assert.equal(JSON.parse(w.localStorage.getItem("biblia.v1")).voice, "luciana");
+  assert.equal(items()[2].getAttribute("aria-pressed"), "true");
+  assert.equal(w.spoken.at(-1).voice.name, "Luciana");
+
+  $("closeVer").click();
+  $("listenBtn").click();
+  assert.equal(w.spoken.at(-1).voice.name, "Luciana");
+
+  const again = open("#sl-23", null, { voice: "sumiu" }, { voice: true });
+  await tick();
+  again.$("listenBtn").click();
+  assert.equal(again.w.spoken.at(-1).voice.name, "Felipe (Aprimorada)");
 });

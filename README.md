@@ -10,7 +10,7 @@ Bíblia Sagrada em web app para a AJA Church, com design brutalista, quatro trad
 2. Toque em Compartilhar → Adicionar à Tela de Início.
 3. Use sempre pelo ícone. O progresso fica salvo no aparelho, separado do Safari.
 
-Para ouvir um capítulo, toque em ▶ Ouvir capítulo. A voz é a do próprio aparelho e funciona sem internet. Para uma voz mais natural no iPhone, baixe uma voz em português em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.
+Para ouvir um capítulo, toque em ▶ Ouvir capítulo. A voz é a do próprio aparelho e funciona sem internet. Para uma voz mais natural no iPhone, baixe uma voz em português marcada como Aprimorada ou Premium em Ajustes → Acessibilidade → Conteúdo Falado → Vozes, feche e abra o app e escolha a voz em Configurações → Voz da leitura.
 
 ## Desenvolvimento
 

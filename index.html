@@ -661,7 +661,10 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
       <button class="btn" id="themeLight" aria-pressed="false">Claro</button>
       <button class="btn" id="themeDark" aria-pressed="false">Escuro</button>
     </div>
-    <div id="rateBox" hidden>
+    <div id="voiceBox" hidden>
+      <div class="sec"><span class="label">Voz da leitura</span><span class="label count">Toque para ouvir</span></div>
+      <div class="vers" id="voiceList"></div>
+      <div class="fine"><p>Para uma voz mais natural no iPhone, baixe uma voz em português marcada como Aprimorada ou Premium em Ajustes → Acessibilidade → Conteúdo Falado → Vozes. Depois feche e abra o app. Se ela não aparecer nesta lista, o iPhone não liberou essa voz para sites.</p></div>
       <div class="sec"><span class="label">Velocidade da voz</span></div>
       <div class="row" role="group" aria-label="Velocidade da voz" id="rateRow">
         <button class="btn" data-rate="0.8" aria-pressed="false">Devagar</button>
@@ -743,7 +746,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   var KEY = "biblia.v1", PKEY = "biblia.prog.v1";
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { ver: "alm", b: 18, c: 23, size: 20, read: false, theme: "", rate: 1 };
+  var state = { ver: "alm", b: 18, c: 23, size: 20, read: false, theme: "", rate: 1, voice: "" };
   var RATES = [0.8, 1, 1.25];
   var sel = new Set();
   var cache = new Map();
@@ -761,6 +764,7 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
       state.read = !!saved.read;
       if (saved.theme === "light" || saved.theme === "dark") state.theme = saved.theme;
       if (RATES.indexOf(saved.rate) >= 0) state.rate = saved.rate;
+      if (typeof saved.voice === "string" && saved.voice.length < 300) state.voice = saved.voice;
     }
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
@@ -1201,11 +1205,19 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
     var o = ORD[+m[1]];
     return (b < 39 ? o : o.slice(0, -1) + "a") + " " + m[2];
   }
+  // Vozes em português: primeiro as do Brasil, depois as melhores, depois as que funcionam sem internet
+  function voiceRank(v) {
+    var q = /premium/i.test(v.name) ? 3 : /enhanced|aprimorad|melhorad|natural|neural/i.test(v.name) ? 2 : /google/i.test(v.name) ? 1 : 0;
+    return (isBR(v) ? 100 : 0) + q * 10 + (v.localService === false ? 0 : 1);
+  }
+  function isBR(v) { return /^pt[-_]br/i.test(v.lang); }
+  function ptVoices() {
+    return synth.getVoices().filter(function (v) { return /^pt/i.test(v.lang); })
+      .sort(function (a, b) { return voiceRank(b) - voiceRank(a) || a.name.localeCompare(b.name); });
+  }
   function ptVoice() {
-    var all = synth.getVoices();
-    var vs = all.filter(function (v) { return /^pt[-_]br/i.test(v.lang); });
-    if (!vs.length) vs = all.filter(function (v) { return /^pt/i.test(v.lang); });
-    return vs.filter(function (v) { return /premium|enhanced|aprimorad|natural|neural/i.test(v.name); })[0] || vs[0] || null;
+    var vs = ptVoices();
+    return vs.filter(function (v) { return v.voiceURI === state.voice; })[0] || vs[0] || null;
   }
   function sayMark(n) {
     var old = document.querySelector(".v.say"); if (old) old.classList.remove("say");
@@ -1265,8 +1277,9 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
   });
   $("ttsStop").addEventListener("click", stopTts);
   if (synth) synth.getVoices();
+  if (synth && synth.addEventListener) synth.addEventListener("voiceschanged", function () { if (!$("verSheet").hidden) buildVoices(); });
   $("listenSel").hidden = !synth;
-  $("rateBox").hidden = !synth;
+  $("voiceBox").hidden = !synth;
 
   var swiped = false;
   $("verses").addEventListener("click", function (e) {
@@ -1458,7 +1471,41 @@ try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).th
       list.appendChild(el);
     });
   }
-  function openVer() { buildVers(); openSheet("verSheet"); }
+  function voiceLabel(v) { return v.name.replace(/^Microsoft\s+/, "").replace(/\s+-\s+Portuguese.*$/i, ""); }
+  function voiceDesc(v) {
+    var q = voiceRank(v) % 100;
+    return [isBR(v) ? "Português do Brasil" : "Português de Portugal",
+      q >= 30 ? "Premium" : q >= 20 ? "Aprimorada" : "Padrão",
+      v.localService === false ? "precisa de internet" : ""].filter(Boolean).join(" · ");
+  }
+  function buildVoices() {
+    if (!synth) return;
+    var list = $("voiceList"), vs = ptVoices(), cur = ptVoice();
+    list.innerHTML = "";
+    var opts = [{ uri: "", code: "AUTO", name: "Automática", desc: vs.length ? "Usa a melhor voz instalada: " + voiceLabel(vs[0]) : "Nenhuma voz em português encontrada neste aparelho." }];
+    vs.forEach(function (v) { opts.push({ uri: v.voiceURI, code: isBR(v) ? "BR" : "PT", name: voiceLabel(v), desc: voiceDesc(v) }); });
+    var picked = state.voice && cur && cur.voiceURI === state.voice ? state.voice : "";
+    opts.forEach(function (o) {
+      var el = document.createElement("button");
+      el.type = "button"; el.className = "ver" + (o.uri === picked ? " cur" : "");
+      el.setAttribute("aria-pressed", o.uri === picked ? "true" : "false");
+      el.innerHTML = '<span class="code"></span><span class="vn"></span><span class="vd"></span>';
+      el.children[0].textContent = o.code; el.children[1].textContent = o.name; el.children[2].textContent = o.desc;
+      el.addEventListener("click", function () {
+        state.voice = o.uri; save(); buildVoices();
+        if (!tts.on) previewVoice();
+      });
+      list.appendChild(el);
+    });
+  }
+  function previewVoice() {
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance("O Senhor é o meu pastor; nada me faltará.");
+    u.lang = "pt-BR"; u.rate = state.rate;
+    var v = ptVoice(); if (v) u.voice = v;
+    synth.speak(u);
+  }
+  function openVer() { buildVers(); buildVoices(); openSheet("verSheet"); }
   $("openVer").addEventListener("click", openVer);
   $("homeVer").addEventListener("click", openVer);
   $("sizeDown").addEventListener("click", function () { var i = SIZES.indexOf(state.size); if (i > 0) { state.size = SIZES[i - 1]; applySize(); save(); } });
