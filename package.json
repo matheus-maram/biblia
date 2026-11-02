@@ -1,0 +1,14 @@
+{
+  "name": "biblia-aja-church",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bíblia AJA Church: web app estático em HTML, publicado no GitHub Pages.",
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes serve -l 8080 .",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
+}
