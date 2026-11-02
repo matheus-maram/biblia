@@ -6,7 +6,7 @@ import { JSDOM, VirtualConsole } from "jsdom";
 const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const PKEY = "biblia.prog.v1";
 
-function open(hash = "", prog = null) {
+function open(hash = "", prog = null, settings = null) {
   const errors = [];
   const virtualConsole = new VirtualConsole();
   virtualConsole.on("jsdomError", (e) => errors.push(e));
@@ -17,6 +17,7 @@ function open(hash = "", prog = null) {
     virtualConsole,
     beforeParse(w) {
       if (prog) w.localStorage.setItem(PKEY, JSON.stringify(prog));
+      if (settings) w.localStorage.setItem("biblia.v1", JSON.stringify(settings));
       w.scrollTo = () => {};
       w.Element.prototype.scrollIntoView = () => {};
       w.matchMedia = () => ({ matches: true, addEventListener() {} });
@@ -84,6 +85,28 @@ test("trocar de versão mantém o capítulo e carrega o novo texto", async () =>
   await tick();
   assert.equal($("bookName").textContent, "Salmos");
   assert.notEqual($("v1").textContent, before);
+});
+
+test("as configurações trocam o tema e a escolha continua ao reabrir", async () => {
+  const { w, $ } = open();
+  assert.equal($("homeVer").textContent, "Configurações");
+  $("homeVer").click();
+  assert.equal($("verSheet").hidden, false);
+  assert.equal($("verTitle").textContent, "Configurações");
+
+  $("themeLight").click();
+  assert.equal(w.document.documentElement.getAttribute("data-theme"), "light");
+  assert.equal($("themeLight").getAttribute("aria-pressed"), "true");
+  assert.equal($("themeDark").getAttribute("aria-pressed"), "false");
+
+  $("themeDark").click();
+  assert.equal(w.document.documentElement.getAttribute("data-theme"), "dark");
+  const settings = JSON.parse(w.localStorage.getItem("biblia.v1"));
+  assert.equal(settings.theme, "dark");
+
+  const again = open("", null, { theme: "light" });
+  assert.equal(again.w.document.documentElement.getAttribute("data-theme"), "light");
+  assert.equal(again.$("themeLight").getAttribute("aria-pressed"), "true");
 });
 
 test("o desafio de 1 ano passa por leitura do dia, marcos e progresso salvo", async () => {

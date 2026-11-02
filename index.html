@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=JetBrains+Mono:wght@400;700&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&display=swap">
 <style>
-:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+:root { color-scheme: light; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 body { margin: 0; padding: 0; }
 [hidden] { display: none !important; }
@@ -148,6 +148,7 @@ html.seen .splash, .splash.skip { display: none; }
 .btn[disabled] { opacity: .35; cursor: default; box-shadow: none; }
 .btn.inv { background: var(--ink); color: var(--paper); }
 .btn.red { background: var(--rubric); color: var(--onrubric); border-color: var(--ink); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .row { display: flex; flex-wrap: wrap; gap: 12px; }
 .row .btn { flex: 1 1 140px; }
 .blk { padding-block: 28px 0; }
@@ -427,6 +428,7 @@ html.seen .splash, .splash.skip { display: none; }
 
 <script>
 try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classList.add("seen"); else sessionStorage.setItem("aja.splash", "1"); } catch (e) {}
+try { var t = (JSON.parse(localStorage.getItem("biblia.v1") || "null") || {}).theme; if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); } catch (e) {}
 </script>
 </head>
 <body>
@@ -449,7 +451,7 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
     </button>
     <div class="ptitle" id="ptitle" hidden>Progresso</div>
     <button class="chip" id="openProg" aria-label="Ver progresso de leitura">0%</button>
-    <button class="chip" id="openVer" aria-haspopup="dialog" aria-controls="verSheet" aria-label="Versão e tamanho do texto">ALM</button>
+    <button class="chip" id="openVer" aria-haspopup="dialog" aria-controls="verSheet" aria-label="Configurações">ALM</button>
   </div>
 </header>
 
@@ -516,7 +518,7 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
     </section>
 
     <footer class="foot">
-      <div class="row"><button class="btn" id="homeVer">Versão e tamanho do texto</button><button class="btn" id="homeProg">Meu progresso</button></div>
+      <div class="row"><button class="btn" id="homeVer">Configurações</button><button class="btn" id="homeProg">Meu progresso</button></div>
       <div class="fine">
         <p>Traduções de uso livre: Almeida (domínio público), Bíblia Livre e Bíblia Livre TR (CC BY 3.0 Brasil) e Nova Versão de Acesso Livre (CC BY-SA 4.0).</p>
         <p>Fontes: <a href="https://github.com/seven1m/open-bibles" target="_blank" rel="noopener">open-bibles</a> e <a href="https://github.com/scrollmapper/bible_databases" target="_blank" rel="noopener">Scrollmapper Bible Databases</a>.</p>
@@ -631,7 +633,7 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
 <div class="sheet" id="verSheet" role="dialog" aria-modal="true" aria-labelledby="verTitle" hidden>
   <div class="wrap gut">
     <div class="sheet-top">
-      <h2 id="verTitle">Versão</h2>
+      <h2 id="verTitle">Configurações</h2>
       <button class="btn" id="closeVer">Fechar</button>
     </div>
     <div class="sec"><span class="label">Escolha a tradução</span></div>
@@ -643,6 +645,11 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
       <button class="btn" id="sizeUp" aria-label="Aumentar texto">A+</button>
     </div>
     <div class="sample"><span class="n">1</span>O Senhor é o meu pastor; nada me faltará.</div>
+    <div class="sec"><span class="label">Tema</span></div>
+    <div class="row" role="group" aria-label="Tema">
+      <button class="btn" id="themeLight" aria-pressed="false">Claro</button>
+      <button class="btn" id="themeDark" aria-pressed="false">Escuro</button>
+    </div>
     <div class="fine">
       <p>Todas as traduções aqui são de uso livre. Versões como ARA, ARC, NVI, NAA e NTLH têm direitos reservados pelas editoras e por isso não estão incluídas.</p>
       <p>Fontes: Almeida via <a href="https://github.com/seven1m/open-bibles" target="_blank" rel="noopener">open-bibles</a>; Bíblia Livre, Bíblia Livre TR e NVA via <a href="https://github.com/scrollmapper/bible_databases" target="_blank" rel="noopener">Scrollmapper Bible Databases</a>, sob as licenças indicadas em cada versão.</p>
@@ -716,7 +723,7 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
   var KEY = "biblia.v1", PKEY = "biblia.prog.v1";
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { ver: "alm", b: 18, c: 23, size: 20, read: false };
+  var state = { ver: "alm", b: 18, c: 23, size: 20, read: false, theme: "" };
   var sel = new Set();
   var cache = new Map();
   var renderToken = 0;
@@ -731,6 +738,7 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
       if (saved.c >= 1 && saved.c <= CH[state.b]) state.c = saved.c | 0;
       if (SIZES.indexOf(saved.size) >= 0) state.size = saved.size;
       state.read = !!saved.read;
+      if (saved.theme === "light" || saved.theme === "dark") state.theme = saved.theme;
     }
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
@@ -1352,6 +1360,20 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
   $("sizeDown").addEventListener("click", function () { var i = SIZES.indexOf(state.size); if (i > 0) { state.size = SIZES[i - 1]; applySize(); save(); } });
   $("sizeUp").addEventListener("click", function () { var i = SIZES.indexOf(state.size); if (i < SIZES.length - 1) { state.size = SIZES[i + 1]; applySize(); save(); } });
 
+  // Sem escolha salva, o tema acompanha o sistema
+  function paintTheme() {
+    var dark = state.theme ? state.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    $("themeDark").setAttribute("aria-pressed", dark ? "true" : "false");
+    $("themeLight").setAttribute("aria-pressed", dark ? "false" : "true");
+  }
+  function setTheme(t) {
+    state.theme = t;
+    document.documentElement.setAttribute("data-theme", t);
+    save(); paintTheme();
+  }
+  $("themeLight").addEventListener("click", function () { setTheme("light"); });
+  $("themeDark").addEventListener("click", function () { setTheme("dark"); });
+
   // ---------- home ----------
   (function ticker() {
     var names = BOOKS.map(function (b) { return b[2].toUpperCase(); });
@@ -1694,6 +1716,7 @@ try { if (sessionStorage.getItem("aja.splash")) document.documentElement.classLi
   });
 
   applySize();
+  paintTheme();
   $("openVer").textContent = ver().code;
   $("openProg").textContent = fmtPct(rc);
   checkMilestones();
