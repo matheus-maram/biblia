@@ -22,6 +22,43 @@ test("todas as versões têm 66 livros e 1.189 capítulos", () => {
   }
 });
 
+test("a Almeida tem o mesmo total de versículos da Bíblia Livre em cada capítulo", () => {
+  for (let b = 0; b < 66; b++) {
+    const blv = book("blv", b);
+    book("alm", b).forEach((ch, c) => assert.equal(ch.length, blv[c].length, `livro ${b + 1}, capítulo ${c + 1}`));
+  }
+});
+
+test("a Almeida mantém a numeração corrigida", () => {
+  const cases = [
+    [0, 36, 5, "e Aolíbama teve a Jeús"],
+    [0, 43, 7, "Responderam eles:"],
+    [3, 5, 6, "Dize aos filhos de Israel:"],
+    [3, 25, 9, "Ora, os que morreram"],
+    [6, 5, 31, "Assim ó Senhor"],
+    [8, 20, 42, "E disse Jônatas"],
+    [11, 18, 34, "Que é feito dos deuses"],
+    [15, 5, 10, "Também eu,"],
+    [15, 12, 3, "Secanias,"],
+    [18, 86, 11, "Ensina-me, Senhor"],
+    [18, 86, 13, "Pois grande"],
+    [25, 20, 5, "e dize-lhes:"],
+    [41, 9, 62, "Jesus, porém"],
+    [46, 13, 14, "A graça do Senhor"],
+  ];
+  for (const [b, c, v, start] of cases) {
+    assert.ok(book("alm", b)[c - 1][v - 1].startsWith(start), `livro ${b + 1}, ${c}:${v}`);
+  }
+});
+
+test("os únicos versículos vazios da Almeida são os que faltam na fonte", () => {
+  const empty = [];
+  for (let b = 0; b < 66; b++) {
+    book("alm", b).forEach((ch, c) => ch.forEach((text, v) => { if (!text) empty.push(`${b + 1}.${c + 1}.${v + 1}`); }));
+  }
+  assert.deepEqual(empty, ["19.86.10", "42.9.61"]);
+});
+
 test("nenhum versículo tem erro de codificação ou marcação solta", () => {
   eachVerse((text, ref) => {
     assert.equal(typeof text, "string", ref);

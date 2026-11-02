@@ -34,4 +34,10 @@ Um `git push` para a branch `main` publica o site pelo GitHub Pages.
 As licenças acima valem para os textos. Alterações feitas em relação às fontes:
 
 - Almeida: "ç" corrigido para "Ó" em 66 ocorrências e "d‰" corrigido para "de" em Neemias 9:38. São erros de codificação.
+- Almeida: numeração alinhada à versificação usual, sem reescrever o texto:
+  - versículos unidos foram separados em Gênesis 36:4-5 e 43:4-5, Números 5:5-6 e 25:7-8, Neemias 5:9-10, Ezequiel 20:4-5 e 2 Coríntios 13:12-13. Em Neemias 5:9, saiu o "10" grudado no texto. Em Números 25:8, "o foi" virou "e foi".
+  - versículos divididos foram unidos em Juízes 5:31 e 1 Samuel 20:42.
+  - versículos trocados voltaram à ordem em 2 Reis 18:34-35 e Neemias 12:3-4.
+  - em Salmos 86, foi removida a repetição do versículo 13.
+- Almeida: Salmos 86:10 e Lucas 9:61 não existem na fonte. As posições ficam vazias e o app não exibe esses números.
 - Bíblia Livre e Bíblia Livre TR: removida de Deuteronômio 32:5 uma nota de rodapé que aparecia no meio do versículo.

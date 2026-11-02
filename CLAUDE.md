@@ -32,7 +32,7 @@ O progresso fica só no `localStorage` do aparelho (`biblia.prog.v1`; preferênc
 
 Vêm das fontes e não foram alterados, porque corrigir exige decidir o texto:
 
-- **Almeida, numeração:** a fonte tem 31.098 versículos e traz capítulos com um versículo a mais ou a menos que o padrão, o que desloca as referências depois do ponto de divergência: Gn 36 e 43, Nm 5 e 25, Jz 5, 1Sm 20, Ne 5, Ez 20, Lc 9, 2Co 13.
+- **Almeida, Salmos 86:10 e Lucas 9:61:** faltam na fonte. As posições ficam vazias para manter a numeração, e o app pula esses números. Não preencher com outra tradução.
 - **Almeida, Rute 4:1:** o texto está corrompido na fonte.
 
-Correções já aplicadas ficam no histórico do git e no README. `test/data.test.js` impede que os erros de codificação voltem.
+A numeração da Almeida foi alinhada à Bíblia Livre e à NVA, capítulo por capítulo. As correções estão listadas no README, e `test/data.test.js` impede que os erros de numeração e de codificação voltem.
